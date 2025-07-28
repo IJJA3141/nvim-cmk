@@ -107,7 +107,9 @@ end
 
 ---@param on_exit fun(out: vim.SystemCompleted)?
 function cmk.clean(on_exit)
-  return vim.system(
+  on_exit = on_exit or cmk.opts.call_back
+
+  vim.system(
     { "rm", "-r", cmk.opts.build_dir, "compile_commands.json" },
     { cwd = cmk.opts.cwd },
     on_exit
@@ -124,7 +126,8 @@ end
 local function build(type)
   vim.cmd("wa")
 
-  if not vim.fn.isdirectory(cmk.opts.build_dir) then
+  if not vim.fn.isdirectory(cmk.opts.cwd .. "/" .. cmk.opts.build_dir) then
+    print("extist not")
     cmk.generate(function(result)
       cmk.opts.call_back(result)
 
@@ -133,6 +136,7 @@ local function build(type)
       end
     end)
   else
+    print("exist")
     cmk.build(type)
   end
 end
