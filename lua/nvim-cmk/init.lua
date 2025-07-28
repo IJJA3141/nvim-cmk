@@ -127,7 +127,7 @@ end
 function cmk.setup(opts)
   cmk.opts = vim.tbl_deep_extend("force", cmk.opts, opts)
 
-  print(cmk.opts.root_marker)
+  print(vim.inspect(cmk.opts.root_marker))
   local root = vim.fs.root(0, cmk.opts.root_marker)
 
   if root then cmk.opts.cwd = root
