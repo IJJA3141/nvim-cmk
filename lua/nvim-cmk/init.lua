@@ -69,7 +69,7 @@ function cmk.build(type, on_exit)
 
   vim.system(
     { "cmake", "--build", "bin/", "--config", "Release" },
-    { cwd = cmk.opts.cwd },
+    { cwd = cmk.opts.cwd, stdout = function(err, data) error(err) print(data) end },
     on_exit
   )
 end
