@@ -40,7 +40,7 @@ cmk.opts = {
 
 ---@param on_exit fun(out: vim.SystemCompleted)?
 function cmk.generate(on_exit)
-  on_exit = on_exit or cmk.ca
+  on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
     {
@@ -56,7 +56,7 @@ end
 ---@param on_exit fun(out: vim.SystemCompleted)?
 function cmk.build(type, on_exit)
   type = type or cmk.opts.build_type
-  on_exit = on_exit or cmk.call_back
+  on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
     { "cmake", ".", "--config", type },
@@ -69,7 +69,7 @@ end
 ---@param on_exit fun(out: vim.SystemCompleted)?
 function cmk.build_test(type, on_exit)
   type = type or cmk.opts.build_type
-  on_exit = on_exit or cmk.call_back
+  on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
     { "cmake", ".", "--config", type },
@@ -80,7 +80,7 @@ end
 
 ---@param on_exit fun(out: vim.SystemCompleted)?
 function cmk.run_test(on_exit)
-  on_exit = on_exit or cmk.call_back
+  on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
     { "ctest", "--test-dir", "../" .. cmk.opts.build_dir },
@@ -91,7 +91,7 @@ end
 
 ---@param on_exit fun(out: vim.SystemCompleted)?
 function cmk.cat(on_exit)
-  on_exit = on_exit or cmk.call_back
+  on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
     { "cat", "LastTest.log" },
@@ -121,7 +121,7 @@ local function build(type)
 
   if not vim.fn.isdirectory(cmk.opts.build_dir) then
     cmk.generate(function(result)
-      cmk.call_back(result)
+      cmk.opts.call_back(result)
 
       if not result.code then
         cmk.build(type)
@@ -138,7 +138,7 @@ local function build_test(type)
 
   if not vim.fn.isdirectory(cmk.opts.build_dir) then
     cmk.generate(function(result)
-      cmk.call_back(result)
+      cmk.opts.call_back(result)
 
       if not result.code then
         cmk.build_test(type)
@@ -155,11 +155,11 @@ local function run_test(type)
 
   if not vim.fn.isdirectory(cmk.opts.build_dir) then
     cmk.generate(function(result)
-      cmk.call_back(result)
+      cmk.opts.call_back(result)
 
       if not result.code then
         cmk.build(type, function(res)
-          cmk.call_back(res)
+          cmk.opts.call_back(res)
 
           if not res.code then
             cmk.run_test()
@@ -169,7 +169,7 @@ local function run_test(type)
     end)
   else
     cmk.build(type, function(result)
-      cmk.call_back(cmk)
+      cmk.opts.call_back(cmk)
 
       if not result.code then
         cmk.run_test()
