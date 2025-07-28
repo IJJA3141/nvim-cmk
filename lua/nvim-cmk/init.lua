@@ -1,6 +1,6 @@
 local cmk = {}
 
----@enum buildType
+---@enum cmk.BuildType
 cmk.BUILD_TYPES = {
   Debug = "Debug",
   Release = "Release",
@@ -10,7 +10,7 @@ cmk.BUILD_TYPES = {
 
 ---@class (exact) cmk.Opts
 ---@filed root_marker sring[]
----@field build_type buildType
+---@field build_type cmk.BuildType
 ---@field cwd string
 ---@field build_dir string
 ---@field user_commands boolean
@@ -18,7 +18,7 @@ cmk.BUILD_TYPES = {
 
 ---@class cmk.SetupOpts
 ---@filed root_marker sring[]?
----@field build_type buildType?
+---@field build_type cmk.BuildType?
 ---@field build_dir string?
 ---@field user_commands boolean?
 ---@field call_back fun(result: vim.SystemCompleted)?
@@ -38,57 +38,74 @@ cmk.opts = {
   end
 }
 
-function cmk.generate()
+---@param on_exit fun(out: vim.SystemCompleted)?
+function cmk.generate(on_exit)
+  on_exit = on_exit or cmk.ca
+
   vim.system(
     {
       "cmake", "-S", "./", cmk.opts.build_dir, "&&",
       "ln", "-s", cmk.opts.build_dir .. "/compile_commands.json", "compile_commands.json"
     },
-    { cwd = cmk.opts.cwd }, cmk.opts.call_back)
+    { cwd = cmk.opts.cwd },
+    on_exit
+  )
 end
 
----@param type buildType?
-function cmk.build(type)
+---@param type cmk.BuildType?
+---@param on_exit fun(out: vim.SystemCompleted)?
+function cmk.build(type, on_exit)
   type = type or cmk.opts.build_type
+  on_exit = on_exit or cmk.call_back
+
   vim.system(
     { "cmake", ".", "--config", type },
     { cwd = cmk.opts.cwd .. "/" .. cmk.opts.build_dir },
-    cmk.opts.call_back
+    on_exit
   )
 end
 
----@param type buildType?
-function cmk.build_test(type)
+---@param type cmk.BuildType?
+---@param on_exit fun(out: vim.SystemCompleted)?
+function cmk.build_test(type, on_exit)
   type = type or cmk.opts.build_type
+  on_exit = on_exit or cmk.call_back
+
   vim.system(
     { "cmake", ".", "--config", type },
     { cwd = cmk.opts.cwd .. "/" .. cmk.opts.build_dir .. "/test/" },
-    cmk.call_back
+    on_exit
   )
 end
 
-function cmk.run_test()
-  cmk.cmakebuild()
+---@param on_exit fun(out: vim.SystemCompleted)?
+function cmk.run_test(on_exit)
+  on_exit = on_exit or cmk.call_back
+
   vim.system(
     { "ctest", "--test-dir", "../" .. cmk.opts.build_dir },
     { cwd = cmk.opts.cwd .. "/test/" },
-    cmk.opts.call_back
+    on_exit
   )
 end
 
-function cmk.cat()
+---@param on_exit fun(out: vim.SystemCompleted)?
+function cmk.cat(on_exit)
+  on_exit = on_exit or cmk.call_back
+
   vim.system(
     { "cat", "LastTest.log" },
     { cwd = cmk.opts.cwd .. "/" .. cmk.opts.build_dir .. "/Testing/Temporary/" },
-    cmk.opts.call_back
+    on_exit
   )
 end
 
-function cmk.clean()
-  vim.system(
+---@param on_exit fun(out: vim.SystemCompleted)?
+function cmk.clean(on_exit)
+  return vim.system(
     { "rm", "-r", cmk.opts.build_dir, "compile_commands.json" },
     { cwd = cmk.opts.cwd },
-    cmk.opts.call_back
+    on_exit
   )
 end
 
@@ -98,42 +115,83 @@ local function generate()
   cmk.generate()
 end
 
-local function build()
+---@param type cmk.BuildType?
+local function build(type)
   vim.cmd("wa")
 
   if not vim.fn.isdirectory(cmk.opts.build_dir) then
-    cmk.generate()
-  end
+    cmk.generate(function(result)
+      cmk.call_back(result)
 
-  cmk.build()
+      if not result.code then
+        cmk.build(type)
+      end
+    end)
+  else
+    cmk.build(type)
+  end
 end
 
-local function build_test()
+---@param type cmk.BuildType
+local function build_test(type)
   vim.cmd("wa")
 
   if not vim.fn.isdirectory(cmk.opts.build_dir) then
-    cmk.generate()
-  end
+    cmk.generate(function(result)
+      cmk.call_back(result)
 
-  cmk.build_test()
+      if not result.code then
+        cmk.build_test(type)
+      end
+    end)
+  else
+    cmk.build_test(type)
+  end
 end
 
-local function run_test()
-  build()
-  cmk.run_test()
+---@param type cmk.BuildType
+local function run_test(type)
+  vim.cmd("wa")
+
+  if not vim.fn.isdirectory(cmk.opts.build_dir) then
+    cmk.generate(function(result)
+      cmk.call_back(result)
+
+      if not result.code then
+        cmk.build(type, function(res)
+          cmk.call_back(res)
+
+          if not res.code then
+            cmk.run_test()
+          end
+        end)
+      end
+    end)
+  else
+    cmk.build(type, function(result)
+      cmk.call_back(cmk)
+
+      if not result.code then
+        cmk.run_test()
+      end
+    end)
+  end
 end
 
 ---@param opts cmk.SetupOpts?
 function cmk.setup(opts)
   cmk.opts = vim.tbl_deep_extend("force", cmk.opts, opts)
 
-  print(vim.inspect(cmk.opts.root_marker))
   local root = vim.fs.root(0, cmk.opts.root_marker)
 
-  if root then cmk.opts.cwd = root
-  else error("couldn't find root directory") return end
+  if root then
+    cmk.opts.cwd = root
+  else
+    error("couldn't find root directory")
+    return
+  end
 
-  if cmk.userCommands then
+  if cmk.opts.user_commands then
     vim.api.nvim_create_user_command("CMakeGenerate", generate, { desc = "Generate the build system" })
     vim.api.nvim_create_user_command("CMakeBuild", build, { desc = "Build the project" })
     vim.api.nvim_create_user_command("CMakeBuildTest", build_test, { desc = "Build the test project" })
