@@ -43,12 +43,19 @@ function cmk.generate(on_exit)
   on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
-    {
-      "cmake", "-S", "./", cmk.opts.build_dir, "&&",
-      "ln", "-s", cmk.opts.build_dir .. "/compile_commands.json", "compile_commands.json"
-    },
+    { "cmake", "-S", "./", cmk.opts.build_dir },
     { cwd = cmk.opts.cwd },
-    on_exit
+    function(result)
+      if result.code then
+        on_exit(result)
+      else
+        vim.system(
+          { "ln", "-s", cmk.opts.build_dir .. "/compile_commands.json", "compile_commands.json" },
+          { cwd = cmk.opts.cwd },
+          on_exit
+        )
+      end
+    end
   )
 end
 
