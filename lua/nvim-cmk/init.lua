@@ -66,8 +66,8 @@ function cmk.build(type, on_exit)
   on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
-    { "cmake", ".", "--config", type },
-    { cwd = cmk.opts.cwd .. "/" .. cmk.opts.build_dir },
+    { "cmake", cmk.opts.build_dir, "--config", type },
+    { cwd = cmk.opts.cwd },
     on_exit
   )
 end
@@ -78,11 +78,7 @@ function cmk.build_test(type, on_exit)
   type = type or cmk.opts.build_type
   on_exit = on_exit or cmk.opts.call_back
 
-  vim.system(
-    { "cmake", ".", "--config", type },
-    { cwd = cmk.opts.cwd .. "/" .. cmk.opts.build_dir .. "/test/" },
-    on_exit
-  )
+  vim.system({ "make" }, { cwd = cmk.opts.cwd .. "/" .. cmk.opts.build_dir .. "/test/" }, on_exit)
 end
 
 ---@param on_exit fun(out: vim.SystemCompleted)?
