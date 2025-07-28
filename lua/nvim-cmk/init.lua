@@ -13,16 +13,13 @@ cmk.BUILD_TYPES = {
 ---@field build_type buildType
 ---@field cwd string
 ---@field build_dir string
----@field silent boolean
 ---@field user_commands boolean
 ---@field call_back fun(result: vim.SystemCompleted)
----@field smart boolean
 
 ---@class cmk.SetupOpts
 ---@filed root_marker sring[]?
 ---@field build_type buildType?
 ---@field build_dir string?
----@field silent boolean?
 ---@field user_commands boolean?
 ---@field call_back fun(result: vim.SystemCompleted)?
 
@@ -31,7 +28,6 @@ cmk.opts = {
   build_type = "Debug",
   root_marker = { ".git", "CMakeLists.txt", "compile_commands.json" },
   build_dir = "bin/",
-  silent = false,
   user_commands = true,
   call_back = function(result)
     if result.code ~= 0 then
@@ -131,7 +127,8 @@ end
 function cmk.setup(opts)
   cmk.opts = vim.tbl_deep_extend("force", cmk.opts, opts)
 
-  local root = vim.fs.root(0, cmk.root_marker)
+  print(cmk.opts.root_marker)
+  local root = vim.fs.root(0, cmk.opts.root_marker)
 
   if root then cmk.opts.cwd = root
   else error("couldn't find root directory") return end
