@@ -126,7 +126,8 @@ end
 local function build(type)
   vim.cmd("wa")
 
-  if not vim.fn.isdirectory(cmk.opts.cwd .. "/" .. cmk.opts.build_dir) then
+  print(cmk.opts.cwd .. "/" .. cmk.opts.build_dir)
+  if vim.fn.isdirectory(cmk.opts.cwd .. "/" .. cmk.opts.build_dir) == 0 then
     print("extist not")
     cmk.generate(function(result)
       cmk.opts.call_back(result)
