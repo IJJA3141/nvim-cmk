@@ -65,11 +65,12 @@ function cmk.build(type, on_exit)
   type = type or cmk.opts.build_type
   on_exit = on_exit or cmk.opts.call_back
 
-  print(cmk.opts.cwd)
-
   vim.system(
     { "cmake", "--build", "bin/", "--config", "Release" },
-    { cwd = cmk.opts.cwd, stdout = function(err, data) error(err) print(data) end },
+    { cwd = cmk.opts.cwd, stdout = function(err, data)
+      error(err)
+      print(data)
+    end },
     on_exit
   )
 end
@@ -126,9 +127,7 @@ end
 local function build(type)
   vim.cmd("wa")
 
-  print(cmk.opts.cwd .. "/" .. cmk.opts.build_dir)
   if vim.fn.isdirectory(cmk.opts.cwd .. "/" .. cmk.opts.build_dir) == 0 then
-    print("extist not")
     cmk.generate(function(result)
       cmk.opts.call_back(result)
 
@@ -137,7 +136,6 @@ local function build(type)
       end
     end)
   else
-    print("exist")
     cmk.build(type)
   end
 end
