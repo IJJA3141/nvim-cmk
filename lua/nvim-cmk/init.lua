@@ -66,7 +66,7 @@ function cmk.build(type, on_exit)
   on_exit = on_exit or cmk.opts.call_back
 
   vim.system(
-    { "cmake", cmk.opts.build_dir, "--config", type },
+    { "cmake --build bin/ --config Release" },
     { cwd = cmk.opts.cwd },
     on_exit
   )
