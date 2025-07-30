@@ -163,6 +163,8 @@ function M.clean(opts)
         vim.schedule(function()
           if result.code == 0 then
             popup.close()
+          else
+            print(result.stderr)
           end
         end)
       end
