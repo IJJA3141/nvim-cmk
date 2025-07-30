@@ -6,6 +6,8 @@ local M = {}
 ---@field insert fun(data: string)
 ---@field close fun()
 
+---@param max_height integer
+---@param window_config vim.api.keyset.win_config
 ---@return cmk.PopUp
 function M.create_popup(max_height, window_config)
   ---@type cmk.PopUp

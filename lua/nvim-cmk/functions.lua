@@ -6,7 +6,7 @@ local ui = require('nvim-cmk.ui')
 ---@retrun fun()
 function M.generate(opts)
   return function()
-    local popup = ui.create_popup(2, opts.window_config)
+    local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     vim.system(
       { "cmake", "-S", "./", opts.build_dir },
@@ -34,7 +34,7 @@ end
 ---@return function(type:cmk.BuildType)
 function M.build(opts)
   return function(type)
-    local popup = ui.create_popup(2, opts.window_config)
+    local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     vim.system(
       { "cmake", "--build", opts.build_dir, "--config", type or opts.build_type },
@@ -62,7 +62,7 @@ end
 ---@return fun()
 function M.build_test(opts)
   return function()
-    local popup = ui.create_popup(2, opts.window_config)
+    local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     vim.system(
       { "make" },
@@ -90,7 +90,7 @@ end
 ---@return fun()
 function M.run_test(opts)
   return function()
-    local popup = ui.create_popup(2, opts.window_config)
+    local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     vim.system(
       { "ctest", "--test-dir", "../" .. opts.build_dir },
@@ -118,7 +118,7 @@ end
 ---@return fun()
 function M.cat(opts)
   return function()
-    local popup = ui.create_popup(2, opts.window_config)
+    local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     vim.system(
       { "cat", "LastTest.log" },
@@ -146,7 +146,7 @@ end
 ---@return fun()
 function M.clean(opts)
   return function()
-    local popup = ui.create_popup(2, opts.window_config)
+    local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     vim.system(
       { "rm", "-r", opts.build_dir, "compile_commands.json" },

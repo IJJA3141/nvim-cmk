@@ -9,20 +9,22 @@ cmk.BUILD_TYPES = {
 }
 
 ---@class (exact) cmk.Opts
----@field build_type cmk.BuildType
+---@field default_commands boolean
 ---@field root_marker string[]
 ---@field build_dir string
----@field default_commands boolean
+---@field build_type cmk.BuildType
 ---@field window_config vim.api.keyset.win_config
+---@field window_max_height integer
 ---
 ---@field cwd string
 
 ---@class cmk.SetupOpts
----@filed root_marker sring[]?
----@field build_type cmk.BuildType?
----@field build_dir string?
 ---@field default_commands boolean?
----@field window_config vim.api.keyset.win_config
+---@field root_marker string[]?
+---@field build_dir string?
+---@field build_type cmk.BuildType?
+---@field window_config vim.api.keyset.win_config?
+---@field window_max_height integer?
 
 ---@param opts cmk.SetupOpts?
 function cmk.setup(opts)
@@ -32,6 +34,17 @@ function cmk.setup(opts)
     root_marker = { ".git", "CMakeLists.txt", "compile_commands.json" },
     build_dir = "bin/",
     default_commands = true,
+    window_config = {
+      relative = 'win',
+      row = 0,
+      col = vim.api.nvim_win_get_width(0) - 1,
+      height = 1,
+      width = 80,
+      anchor = 'NE',
+      style = 'minimal',
+      focusable = true,
+      border = { "│", "╭", "─", "╮", "│", "╯", "─", "╰" }
+    }
   }
 
   cmk.opts = vim.tbl_deep_extend("force", default_opts, opts)
