@@ -33,11 +33,11 @@ end
 ---@param opts cmk.Opts
 ---@return function(type:cmk.BuildType)
 function M.build(opts)
-  return function(type)
+  return function(args)
     local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
     print(vim.inspect(vim.system(
-      { "cmake", "--build", opts.build_dir, "--config", type or opts.build_type },
+      { "cmake", "--build", opts.build_dir, "--config", args and args[1] or opts.build_type },
       {
         cwd = opts.cwd,
         stdout = function(err, data)
