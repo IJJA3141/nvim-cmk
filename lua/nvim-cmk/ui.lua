@@ -19,8 +19,13 @@ function M.create_popup(max_height, window_config)
   function popup.insert(data)
     -- add line
     local lines = {}
-    for line in data:gmatch("[^\r\n]+") do
-      table.insert(lines, line)
+
+    if data then
+      for line in data:gmatch("[^\r\n]+") do
+        table.insert(lines, line)
+      end
+    else
+      table.insert(lines, "")
     end
 
     local height = vim.api.nvim_win_get_height(popup.win)
