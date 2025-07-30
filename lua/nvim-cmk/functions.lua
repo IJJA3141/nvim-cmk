@@ -36,7 +36,7 @@ function M.build(opts)
   return function(type)
     local popup = ui.create_popup(opts.window_max_height, opts.window_config)
 
-    print(vim.system(
+    print(vim.inspect(vim.system(
       { "cmake", "--build", opts.build_dir, "--config", type or opts.build_type },
       {
         cwd = opts.cwd,
@@ -54,7 +54,7 @@ function M.build(opts)
           end
         end)
       end
-    ).cmd)
+    ).cmd))
   end
 end
 
