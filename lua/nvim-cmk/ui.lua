@@ -1,4 +1,4 @@
-local M
+local M = {}
 
 ---@class cmk.PopUp
 ---@field buf integer
