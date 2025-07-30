@@ -40,7 +40,7 @@ function M.create_popup(max_height, window_config)
 
       -- place cursor
       if vim.api.nvim_win_get_cursor(popup.win)[1] == height then
-        vim.api.nvim_win_set_cursor(popup.win, { height + 1, 1 })
+        vim.api.nvim_win_set_cursor(popup.win, { height, 1 })
       end
     end
   end

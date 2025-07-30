@@ -44,7 +44,7 @@ function cmk.setup(opts)
       anchor = 'NE',
       style = 'minimal',
       focusable = true,
-      border = { "│", "╭", "─", "╮", "│", "╯", "─", "╰" }
+      border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│", }
     },
   }
 
