@@ -44,7 +44,7 @@ local DEFAULT_WIN = {
 
 ---@type cmk.config
 local DEFAULT = {
-  root_marker = {},
+  root_marker = {".git"},
   register_autocmd = true,
 
   build_dir = "/bin/",
