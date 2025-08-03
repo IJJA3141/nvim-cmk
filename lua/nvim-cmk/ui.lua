@@ -1,66 +1,93 @@
 local M = {}
 
----@class cmk.PopUp
----@field buf integer
----@field win integer
----@field insert fun(data: string)
----@field close fun()
+---@module 'nvim-cmk.config"
+---@type cmk.config
+local config = require 'nvim-cmk.config'.config
 
----@param max_height integer
----@param window_config vim.api.keyset.win_config
----@return cmk.PopUp
-function M.create_popup(max_height, window_config)
-  ---@type cmk.PopUp
-  local popup = {}
-  popup.buf = vim.api.nvim_create_buf(false, true)
-  popup.win = vim.api.nvim_open_win(popup.buf, false, window_config)
+---@type integer
+local buf = -1
 
-  ---@param data string
-  function popup.insert(data)
-    -- add line
-    local lines = {}
+---@type integer
+local win = -1
 
-    if data then
-      for line in data:gmatch("[^\r\n]+") do
-        table.insert(lines, line)
-      end
-    else
-      table.insert(lines, "")
+---@type integer
+local height = 0
+
+---@return boolean
+function M.create()
+  if buf == -1 then
+    buf = vim.api.nvim_create_buf(false, true)
+    win = vim.api.nvim_open_win(buf, false, config.win_config)
+    height = 0
+
+    return false
+  end
+
+  return true
+end
+
+---@param result vim.SystemCompleted
+function M.delete(result)
+  if result.code == 0 then
+    vim.schedule(function()
+      vim.api.nvim_buf_delete(buf, {})
+      buf = -1
+    end)
+  else
+    M.insert(nil, result.stderr)
+  end
+end
+
+---@param err string?
+---@param stdout string?
+function M.insert(err, stdout)
+  if err then print(err) end
+
+  -- add lines
+  local lines = {}
+
+  if stdout then
+    for line in stdout:gmatch("[^\r\n]+") do
+      table.insert(lines, line)
     end
+  else
+    table.insert(lines, "")
+  end
 
-    local height = vim.api.nvim_win_get_height(popup.win)
+  vim.schedule(function()
     vim.api.nvim_buf_set_lines(
-      popup.buf,
-      height == 1 and -2 or -1,
+      buf,
+      height == 0 and -2 or -1,
       -1,
       false,
       lines
     )
 
-    if vim.api.nvim_win_is_valid(popup.win) then
-      -- resize win / move
-      if height < max_height then
-        vim.api.nvim_win_set_height(popup.win, height + 1)
+    height = height + #lines
+
+    if vim.api.nvim_win_is_valid(win) then
+      -- resize window
+      vim.api.nvim_win_set_height(win, math.min(height, config.win_max_height))
+
+      -- scroll down
+      if vim.api.nvim_win_get_cursor(win)[1] == height - #lines then
+        vim.api.nvim_win_set_cursor(win, { height, 1 })
       end
-
-      -- place cursor
-      if vim.api.nvim_win_get_cursor(popup.win)[1] == height then
-        vim.api.nvim_win_set_cursor(popup.win, { height, 1 })
-      end
     end
+  end)
+end
+
+function M.show()
+  if not vim.api.nvim_buf_is_valid(buf) then
+    win = vim.api.nvim_open_win(buf, false, config.win_config)
   end
+end
 
-  function popup.close()
-    if vim.api.nvim_win_is_valid(popup.win) then
-      vim.api.nvim_win_close(popup.win, false)
-    end
-
-    if vim.api.nvim_buf_is_valid(popup.buf) then
-      vim.api.nvim_buf_delete(popup.buf, { force = true })
-    end
+function M.hide()
+  if not vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_close(win, false)
+    win = -1
   end
-
-  return popup
 end
 
 return M

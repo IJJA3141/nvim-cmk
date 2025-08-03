@@ -1,6 +1,10 @@
+local config = require 'nvim-cmk.config'
+local functions = require 'nvim-cmk.functions'
+local ui = require 'nvim-cmk.ui'
+
 local cmk = {}
 
----@enum cmk.BuildType
+---@enum cmk.build_type
 cmk.BUILD_TYPES = {
   Debug = "Debug",
   Release = "Release",
@@ -8,72 +12,28 @@ cmk.BUILD_TYPES = {
   MinSizeRel = "MinSizeRel",
 }
 
----@class (exact) cmk.Opts
----@field default_commands boolean
----@field root_marker string[]
----@field build_dir string
----@field build_type cmk.BuildType
----@field window_config vim.api.keyset.win_config
----@field window_max_height integer
----
----@field cwd string
-
----@class cmk.SetupOpts
----@field default_commands boolean?
----@field root_marker string[]?
----@field build_dir string?
----@field build_type cmk.BuildType?
----@field window_max_height integer?
----@field window_config vim.api.keyset.win_config?
-
----@param opts cmk.SetupOpts?
+---@param opts cmk.opts?
 function cmk.setup(opts)
-  ---@type cmk.Opts
-  local default_opts = {
-    build_type = "Debug",
-    root_marker = { ".git", "CMakeLists.txt", "compile_commands.json" },
-    build_dir = "bin/",
-    default_commands = true,
-    window_max_height = 15,
-    window_config = {
-      relative = 'win',
-      row = 0,
-      col = vim.api.nvim_win_get_width(0) - 1,
-      height = 1,
-      width = 80,
-      anchor = 'NE',
-      style = 'minimal',
-      focusable = true,
-      border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│", }
-    },
-  }
+  if opts then config.set(opts) end
 
-  cmk.opts = vim.tbl_deep_extend("force", default_opts, opts)
+  cmk.generate = functions.generate
+  cmk.build = functions.build
+  cmk.build_test = functions.build_test
+  cmk.run_test = functions.run_test
+  cmk.cat = functions.cat
+  cmk.clean = functions.clean
+  cmk.show = ui.show
+  cmk.hide = ui.hide
 
-  local root = vim.fs.root(0, cmk.opts.root_marker)
-
-  if root then
-    cmk.opts.cwd = root
-  else
-    error("couldn't find root directory")
-    return
-  end
-
-  local fn = require("nvim-cmk.functions")
-  cmk.generate = fn.generate(cmk.opts)
-  cmk.build = fn.build(cmk.opts)
-  cmk.build_test = fn.build_test(cmk.opts)
-  cmk.run_test = fn.run_test(cmk.opts)
-  cmk.cat = fn.cat(cmk.opts)
-  cmk.clean = fn.clean(cmk.opts)
-
-  if cmk.opts.default_commands then
+  if config.config.register_autocmd then
     vim.api.nvim_create_user_command("CMakeGenerate", cmk.generate, { desc = "Generate the build system" })
     vim.api.nvim_create_user_command("CMakeBuild", cmk.build, { desc = "Build the project" })
     vim.api.nvim_create_user_command("CMakeBuildTest", cmk.build_test, { desc = "Build the test project" })
     vim.api.nvim_create_user_command("CMakeRunTest", cmk.run_test, { desc = "Build and run tests using CTest" })
     vim.api.nvim_create_user_command("CMakeCat", cmk.cat, { desc = "Show contents of LastTest.log" })
     vim.api.nvim_create_user_command("CMakeClean", cmk.clean, { desc = "Clean root dir" })
+    vim.api.nvim_create_user_command("CMakeShow", cmk.show, { desc = "Shows the popup window" })
+    vim.api.nvim_create_user_command("CMakeHide", cmk.hide, { desc = "Hides the popup window" })
   end
 end
 
