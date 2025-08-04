@@ -1,47 +1,47 @@
+---@type cmk.config
+local config = require 'nvim-cmk.config'
+
+---@enum cmk.ui_state
+local UI_STATE = {
+  Running = "running",
+  Stopped = "stopped",
+  Callback_pending = "callback_pending"
+}
+
+local buf = vim.api.nvim_create_buf(false, true)
+local win = 0
+local height = 0
+
 local M = {}
 
----@module 'nvim-cmk.config"
----@type cmk.config
-local config = require 'nvim-cmk.config'.config
-
----@type integer
-local buf = -1
-
----@type integer
-local win = -1
-
----@type integer
-local height = 0
+---@type cmk.ui_state
+M.state = UI_STATE.Stopped
 
 ---@return boolean
 function M.create()
-  if buf == -1 then
-    buf = vim.api.nvim_create_buf(false, true)
-    win = vim.api.nvim_open_win(buf, false, config.win_config)
-    height = 0
-
-    return false
-  end
-
-  return true
-end
-
----@param result vim.SystemCompleted
-function M.delete(result)
-  if result.code == 0 then
-    vim.schedule(function()
-      vim.api.nvim_buf_delete(buf, {})
-      buf = -1
-    end)
+  if M.state == UI_STATE.Running then return true end
+  if M.state == UI_STATE.Callback_pending then
+    M.state = UI_STATE.Running
   else
-    M.insert(nil, result.stderr)
+    if win == 0 then
+      win = vim.api.nvim_open_win(buf, false, config.win_config)
+    else
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+      vim.api.nvim_win_set_config(win, false, config.win_config)
+    end
+
+    height = 0
   end
+
+  return false
 end
 
----@param err string?
+function M.delete() vim.api.nvim_win_close(win, false) end
+
+---@param stderr string?
 ---@param stdout string?
-function M.insert(err, stdout)
-  if err then print(err) end
+function M.insert(stderr, stdout)
+  if stderr then print(stderr) end
 
   -- add lines
   local lines = {}
@@ -78,15 +78,15 @@ function M.insert(err, stdout)
 end
 
 function M.show()
-  if not vim.api.nvim_buf_is_valid(buf) then
+  if buf ~= 0 and vim.api.nvim_buf_is_valid(buf) and win == 0 then
     win = vim.api.nvim_open_win(buf, false, config.win_config)
   end
 end
 
 function M.hide()
-  if not vim.api.nvim_win_is_valid(win) then
+  if win ~= 0 and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_win_close(win, false)
-    win = -1
+    win = 0
   end
 end
 
