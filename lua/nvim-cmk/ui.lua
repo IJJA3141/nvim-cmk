@@ -20,23 +20,25 @@ M.state = UI_STATE.Stopped
 ---@return boolean
 function M.create()
   if M.state == UI_STATE.Running then return true end
-  if M.state == UI_STATE.Callback_pending then
-    M.state = UI_STATE.Running
-  else
+  if M.state == UI_STATE.Running then
     if win == 0 then
       win = vim.api.nvim_open_win(buf, false, config.win_config)
     else
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-      vim.api.nvim_win_set_config(win, false, config.win_config)
+      vim.api.nvim_win_set_config(win, config.win_config)
     end
 
     height = 0
   end
 
+  M.state = UI_STATE.Running
   return false
 end
 
-function M.delete() vim.api.nvim_win_close(win, false) end
+function M.delete()
+  vim.schedule(function() vim.api.nvim_win_close(win, false) end)
+  -- win = 0
+end
 
 ---@param stderr string?
 ---@param stdout string?

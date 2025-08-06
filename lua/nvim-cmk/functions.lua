@@ -24,12 +24,15 @@ function M.call(cmd, opts)
       return
     end
 
+    print 'ffffffffffffffffff'
+
     vim.system(cmd, opts, function(result)
       if result.code == 0 then
         if success_handler then
           ui.state = "callback_pending"
           success_handler.funct(success_handler.param)
         else
+          ui.state = "stopped"
           ui.delete()
         end
       else
@@ -37,7 +40,8 @@ function M.call(cmd, opts)
           ui.state = "callback_pending"
           error_handler.funct(error_handler.param)
         else
-          error(result.err)
+          ui.state = "stopped"
+          error(result.stderr)
         end
       end
     end
