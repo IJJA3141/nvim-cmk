@@ -36,39 +36,74 @@ function cmk.setup(opts)
   if config.register_autocmd then
     vim.api.nvim_create_user_command("CMakeShow", cmk.show, { desc = "Show nvim-cmk popup" })
     vim.api.nvim_create_user_command("CMakeHide", cmk.hide, { desc = "Hide nvim-cmk popup" })
+    vim.api.nvim_create_user_command("CMakeSetBuildType",
+      function(args) cmk.set_build_type(args[1]) end,
+      { desc = "Set the CMake build type" })
 
-    vim.api.nvim_create_user_command("CMakeSetBuildType", function(args) cmk.set_build_type(args[1]) end, { desc = "Set the CMake build type" })
-    vim.api.nvim_create_user_command("CMakeGenerate", function() cmk.generate({ funct = cmk.link }) end, { desc = "Generate project" })
+    vim.api.nvim_create_user_command("CMakeGenerate",
+      function(args)
+        local build_type = config.build_type
 
-    vim.api.nvim_create_user_command("CMakeBuild", function(args)
-      local build_type
+        cmk.set_build_type(args[1])
+        cmk.generate({ funct = cmk.link })
 
-      if args and args[1] == cmk.BUILD_TYPES.Debug or args[1] == cmk.BUILD_TYPES.MinSizeRel or args[1] == cmk.BUILD_TYPES.RelWithDebInfo or args[1] == cmk.BUILD_TYPES.Release then
-        build_type = config.build_type
-        config.build_type = args[1]
-      end
+        config.build_type = build_type
+      end,
+      { desc = "Generate project" })
 
-      cmk.build(nil, { funct = cmk.generate, param = { funct = cmk.build } })
+    vim.api.nvim_create_user_command("CMakeBuild",
+      function(args)
+        if args and args[1] ~= config.build_type then
+          local build_type = config.build_type
 
-      if build_type then config.build_type = build_type end
-    end, { desc = "" })
+          cmk.set_build_type(args[1])
+          cmk.generate({ funct = cmk.link, param_sucess = { funct = cmk.build } })
 
-    vim.api.nvim_create_user_command("CMakeBuildTest", function(args)
-      local build_type
+          config.build_type = build_type
+        else
+          cmk.build(nil, {
+            funct = cmk.build,
+            param_sucess = {
+              funct = cmk.link,
+              param_sucess = {
+                funct = cmk.build
+              }
+            }
+          }
+          )
+        end
+      end,
+      { desc = "" })
 
-      if args and args[1] == cmk.BUILD_TYPES.Debug or args[1] == cmk.BUILD_TYPES.MinSizeRel or args[1] == cmk.BUILD_TYPES.RelWithDebInfo or args[1] == cmk.BUILD_TYPES.Release then
-        build_type = config.build_type
-        config.build_type = args[1]
-      end
+    vim.api.nvim_create_user_command("CMakeBuildTest",
+      function(args)
+        if args and args[1] ~= config.build_type then
+          local build_type = config.build_type
 
-      cmk.build_test(nil, { funct = cmk.generate, param = { funct = cmk.build_test } })
+          cmk.set_build_type(args[1])
+          cmk.generate({ funct = cmk.link, param_sucess = { funct = cmk.build_test } })
 
-      if build_type then config.build_type = build_type end
-    end, { desc = "" })
+          config.build_type = build_type
+        else
+          cmk.build_test(nil, {
+            funct = cmk.build,
+            param_sucess = {
+              funct = cmk.link,
+              param_sucess = {
+                funct = cmk.build
+              }
+            }
+          }
+          )
+        end
+      end,
+      { desc = "" })
 
-    vim.api.nvim_create_user_command("CMakeRunTest", cmk.run_test, { desc = "" })
+    vim.api.nvim_create_user_command("CMakeRunTest",
+      function() cmk.run_test(nil, { funct = cmk.cat }) end,
+      { desc = "" })
+
     vim.api.nvim_create_user_command("CMakeCat", cmk.cat, { desc = "" })
-
     vim.api.nvim_create_user_command("CMakeClean", cmk.clean, { desc = "" })
   end
 end

@@ -20,12 +20,13 @@ M.state = UI_STATE.Stopped
 ---@return boolean
 function M.create()
   if M.state == UI_STATE.Running then return true end
-  if M.state == UI_STATE.Running then
-    if win == 0 then
-      win = vim.api.nvim_open_win(buf, false, config.win_config)
-    else
-      vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+  if M.state == UI_STATE.Stopped then
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+
+    if win ~= 0 and vim.api.nvim_win_is_valid(win) then
       vim.api.nvim_win_set_config(win, config.win_config)
+    else
+      win = vim.api.nvim_open_win(buf, false, config.win_config)
     end
 
     height = 0
@@ -36,14 +37,16 @@ function M.create()
 end
 
 function M.delete()
-  vim.schedule(function() vim.api.nvim_win_close(win, false) end)
-  -- win = 0
+  vim.schedule(function()
+    vim.api.nvim_win_close(win, false)
+    win = 0
+  end)
 end
 
 ---@param stderr string?
 ---@param stdout string?
 function M.insert(stderr, stdout)
-  if stderr then print(stderr) end
+  if win == 0 then return end
 
   -- add lines
   local lines = {}
@@ -52,8 +55,14 @@ function M.insert(stderr, stdout)
     for line in stdout:gmatch("[^\r\n]+") do
       table.insert(lines, line)
     end
-  else
+  elseif not stderr then
     table.insert(lines, "")
+  end
+
+  if stderr then
+    for line in stderr:gmatch("[^\r\n]+") do
+      table.insert(lines, line)
+    end
   end
 
   vim.schedule(function()
@@ -76,12 +85,19 @@ function M.insert(stderr, stdout)
         vim.api.nvim_win_set_cursor(win, { height, 1 })
       end
     end
+
+    if stderr then vim.api.nvim_set_current_win(win) end
   end)
 end
 
 function M.show()
   if buf ~= 0 and vim.api.nvim_buf_is_valid(buf) and win == 0 then
-    win = vim.api.nvim_open_win(buf, false, config.win_config)
+    ---@type vim.api.keyset.win_config
+    local conf = config.win_config
+    conf.height = height
+
+    win = vim.api.nvim_open_win(buf, false, conf)
+    vim.api.nvim_set_current_win(win)
   end
 end
 

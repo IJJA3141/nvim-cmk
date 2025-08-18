@@ -33,7 +33,7 @@ local default_window_config = {
 
 ---@type cmk.config
 local default_config = {
-  root_marker = { ".git" },
+  root_marker = { ".git", ".clang-format" },
   register_autocmd = true,
   build_dir = "bin/",
   build_type = "Debug",
