@@ -2,7 +2,7 @@
 ---@field root_marker string[]
 ---@field register_autocmd  boolean
 ---@field build_dir string
----@field build_type cmk.build_type
+---@field build_type string
 ---@field win_config vim.api.keyset.win_config
 ---@field win_max_height integer
 ---@field cwd string
@@ -12,7 +12,7 @@
 ---@field root_marker string[]?
 ---@field register_autocmd  boolean?
 ---@field build_dir string?
----@field build_type cmk.build_type?
+---@field build_type string?
 ---@field win_config vim.api.keyset.win_config?
 ---@field win_max_height integer?
 
@@ -30,6 +30,14 @@ local default_window_config = {
   border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│", },
 }
 
+local default_dap_config = {
+  name = "nvim-cmk",
+  type = "cppdbg",
+  request = "launch",
+  program = "",
+  cwd = "",
+  stopAtEntry = false
+}
 
 ---@type cmk.config
 local default_config = {
@@ -40,6 +48,8 @@ local default_config = {
   win_config = default_window_config,
   win_max_height = 15,
   cwd = "",
+  dap = default_dap_config,
+  BUILD_TYPES = { "Debug", "Release", "RelWithDebInfo", "MinSizeRel", },
 }
 
 local M = {}
@@ -51,11 +61,13 @@ M.setup = function(opts)
 
   local root = vim.fs.root(0, new_conf.root_marker)
   if not root then
-    error("couldn't find root directory")
-    return
+    new_conf.cwd = vim.fn.input("Path to cwd: ", vim.fn.getcwd())
+  else
+    new_conf.cwd = root
   end
 
-  new_conf.cwd = root
+  new_conf.dap.cwd = new_conf.cwd
+  new_conf.dap.program = new_conf.cwd .. "/" .. new_conf.build_dir .. "/" .. new_conf.build_type .. "/test/unit_tests"
 
   for k, v in pairs(new_conf) do
     M[k] = v

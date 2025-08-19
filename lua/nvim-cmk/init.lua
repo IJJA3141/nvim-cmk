@@ -1,13 +1,5 @@
 local cmk = {}
 
----@enum cmk.build_type
-cmk.BUILD_TYPES = {
-  Debug = "Debug",
-  Release = "Release",
-  RelWithDebInfo = "RelWithDebInfo",
-  MinSizeRel = "MinSizeRel",
-}
-
 ---@param opts cmk.opts?
 function cmk.setup(opts)
   local config = require 'nvim-cmk.config'
@@ -17,94 +9,52 @@ function cmk.setup(opts)
   local functions = require 'nvim-cmk.functions'
 
   cmk.show = ui.show
-  cmk.hide = ui.hide
+  cmk.hide = ui.close
+  cmk.toggle = ui.toggle
 
-  cmk.call = functions.call
   cmk.set_build_type = functions.set_build_type
-
   cmk.generate = functions.generate
-  cmk.link = functions.link
-
   cmk.build = functions.build
-  cmk.build_test = functions.build_test
-
-  cmk.run_test = functions.run_test
-  cmk.cat = functions.cat
-
+  cmk.test_all = functions.test_all
+  cmk.test = functions.test
+  cmk.dap = functions.dap
   cmk.clean = functions.clean
+
+  print(vim.inspect(config.BUILD_TYPES))
 
   if config.register_autocmd then
     vim.api.nvim_create_user_command("CMakeShow", cmk.show, { desc = "Show nvim-cmk popup" })
     vim.api.nvim_create_user_command("CMakeHide", cmk.hide, { desc = "Hide nvim-cmk popup" })
-    vim.api.nvim_create_user_command("CMakeSetBuildType",
-      function(args) cmk.set_build_type(args[1]) end,
-      { desc = "Set the CMake build type" })
+    vim.api.nvim_create_user_command("CMakeToggle", cmk.toggle, { desc = "Toggle nvim-cmk popup" })
 
-    vim.api.nvim_create_user_command("CMakeGenerate",
-      function(args)
-        local build_type = config.build_type
+    vim.api.nvim_create_user_command("CMakeSetBuildType", cmk.set_build_type , {
+        desc = "Set build type",
+        nargs = "?",
+        complete = function(_, _, _) return config.BUILD_TYPES end,
+      })
 
-        cmk.set_build_type(args[1])
-        cmk.generate({ funct = cmk.link })
+    vim.api.nvim_create_user_command("CMakeGenerate", cmk.generate,
+      {
+        desc = "generate",
+        nargs = "?",
+        complete = function(_, _, _) return config.BUILD_TYPES end,
+      })
 
-        config.build_type = build_type
-      end,
-      { desc = "Generate project" })
+    vim.api.nvim_create_user_command("CMakeBuild", cmk.build,
+    { desc = "Build" , nargs = "?", complete = function(_, _, _) return config.BUILD_TYPES end, })
 
-    vim.api.nvim_create_user_command("CMakeBuild",
-      function(args)
-        if args and args[1] ~= config.build_type then
-          local build_type = config.build_type
+    vim.api.nvim_create_user_command("CMakeTestAll", cmk.test_all, { desc = "Run all tests" 
+, nargs = "?", complete = function(_, _, _) return config.BUILD_TYPES end,
+  })
 
-          cmk.set_build_type(args[1])
-          cmk.generate({ funct = cmk.link, param_sucess = { funct = cmk.build } })
+    vim.api.nvim_create_user_command("CMakeTest",
+      function(args) if args.args then cmk.test(args.args) end end,
+      { desc = "Run a test"
+, nargs = "?", complete = function(_, _, _) return config.BUILD_TYPES end,
+    })
 
-          config.build_type = build_type
-        else
-          cmk.build(nil, {
-            funct = cmk.build,
-            param_sucess = {
-              funct = cmk.link,
-              param_sucess = {
-                funct = cmk.build
-              }
-            }
-          }
-          )
-        end
-      end,
-      { desc = "" })
-
-    vim.api.nvim_create_user_command("CMakeBuildTest",
-      function(args)
-        if args and args[1] ~= config.build_type then
-          local build_type = config.build_type
-
-          cmk.set_build_type(args[1])
-          cmk.generate({ funct = cmk.link, param_sucess = { funct = cmk.build_test } })
-
-          config.build_type = build_type
-        else
-          cmk.build_test(nil, {
-            funct = cmk.build,
-            param_sucess = {
-              funct = cmk.link,
-              param_sucess = {
-                funct = cmk.build
-              }
-            }
-          }
-          )
-        end
-      end,
-      { desc = "" })
-
-    vim.api.nvim_create_user_command("CMakeRunTest",
-      function() cmk.run_test(nil, { funct = cmk.cat }) end,
-      { desc = "" })
-
-    vim.api.nvim_create_user_command("CMakeCat", cmk.cat, { desc = "" })
-    vim.api.nvim_create_user_command("CMakeClean", cmk.clean, { desc = "" })
+    vim.api.nvim_create_user_command("CMakeDap", cmk.dap, { desc = "Dap" })
+    vim.api.nvim_create_user_command("CMakeClean", cmk.clean, { desc = "Clean" })
   end
 end
 

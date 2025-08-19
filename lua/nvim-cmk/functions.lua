@@ -2,128 +2,188 @@ local config = require 'nvim-cmk.config'
 local ui = require 'nvim-cmk.ui'
 
 
----@class cmk.callback
----@field param_sucess cmk.callback?
----@field param_fail cmk.callback?
----@field funct fun(success_handler:cmk.callback?, error_handler:cmk.callback?)
-
-
-local M = {}
-
----@param build_type cmk.build_type
-function M.set_build_type(build_type)
-  if build_type then
-    if
-        build_type[1] == "Debug" or
-        build_type[1] == "Release" or
-        build_type[1] == "RelWithDebInfo" or
-        build_type[1] == "MinSizeRel"
-    then
-      config.build_type = build_type
-    else
-      error(build_type .. "isn't a build type see cmk.build_type")
-    end
-  end
+local function is_in(build_type)
+  for _, type in ipairs(config.BUILD_TYPES) do if build_type == type then return end end
+  error(build_type .. " wasn't in the list of valid build types see cmk.config.build_types for more")
 end
 
----@param cmd any
----@param opts any
----@return fun(success_handler:cmk.callback?, error_handler:cmk.callback?)
-function M.call(cmd, opts)
-  opts.stdout = ui.insert
-
-  return function(success_handler, error_handler)
-    if ui.create() then
-      error("cmake job already running !")
-      return
-    end
-
-    vim.system(cmd, opts, function(result)
-      if result.code == 0 then
-        if success_handler and success_handler.funct then
-          ui.state = "callback_pending"
-          success_handler.funct(success_handler.param_sucess, success_handler.param_fail)
-        else
-          ui.state = "stopped"
-          ui.delete()
-        end
-      else
-        if error_handler and error_handler.funct then
-          ui.state = "callback_pending"
-          error_handler.funct(error_handler.param_sucess, error_handler.param_fail)
-        else
-          ui.state = "stopped"
-          ui.insert(result.stderr)
-        end
-      end
-    end)
-  end
-end
-
-M.cat = function(success_handler, error_handler)
-  if ui.create() then
-    error("cmake job already running !")
-    return
-  end
-
+local function generate(callback)
   vim.system(
-    { "cat", config.build_dir .. "/" .. config.build_type .. "/Testing/Temporary/LastTest.log" },
+    { "cmake",
+      "-DCMAKE_BUILD_TYPE=" .. config.build_type,
+      "-S", ".",
+      "-B", config.build_dir .. "/" .. config.build_type },
     { cwd = config.cwd, stdout = ui.insert },
     function(result)
       if result.code == 0 then
-        ui.insert("", result.stdout)
-
-        if success_handler and success_handler.funct then
-          ui.state = "callback_pending"
-          success_handler.funct(success_handler.param_sucess, success_handler.param_fail)
+        if callback then
+          callback.fn(callback.param)
         else
-          ui.state = "stopped"
+          print("build files succesfully generated")
+          ui.release()
+          ui.close()
         end
       else
-        error(result.stderr)
-
-        if error_handler and error_handler.funct then
-          ui.state = "callback_pending"
-          error_handler.funct(error_handler.param_sucess, error_handler.param_fail)
-        else
-          ui.state = "stopped"
-          ui.delete()
-        end
+        ui.release()
+        error("failed to generate build files")
       end
     end
   )
 end
 
-M.generate = M.call(
-  { "cmake", "-DCMAKE_BUILD_TYPE=" .. config.build_type,
-    "-S", "./",
-    "-B", config.build_dir .. "/" .. config.build_type },
-  { cwd = config.cwd }
-)
+local function build(callback)
+  vim.system(
+    { "cmake", "--build", config.build_dir .. "/" .. config.build_type },
+    { cwd = config.cwd, stdout = ui.insert },
+    function(result)
+      if result.code == 0 then
+        if callback then
+          callback.fn(callback.param)
+        else
+          print("build succesfully")
+          ui.release()
+          ui.close()
+        end
+      else
+        ui.release()
+        error("failed to build")
+      end
+    end
+  )
+end
 
-M.link = M.call(
-  { "ln", "-fs", config.build_dir .. config.build_type .. "/compile_commands.json", "compile_commands.json" },
-  { cwd = config.cwd }
-)
+local function test_all()
+  vim.system(
+    { "ctest", "--test-dir", config.build_dir .. "/" .. config.build_type, "--output-on-failure" },
+    { cwd = config.cwd, stdout = ui.insert },
+    function(result)
+      ui.release()
 
-M.clean = M.call(
-  { "rm", "-rf", config.build_dir, "compile_commands.json" },
-  { cwd = config.cwd, stdout = ui.insert }
-)
+      if result.code == 0 then
+        print("all tests passed")
+        ui.close()
+      else
+        error("a test failed")
+      end
+    end
+  )
+end
 
-M.run_test = M.call(
-  { "ctest", "--test-dir", config.build_dir .. "/" .. config.build_type, "-VV", "--output-on-failure" },
-  { cwd = config.cwd, stdout = ui.insert }
-)
+local function test()
+  vim.system(
+    { "ctest", "--test-dir", config.build_dir .. "/" .. config.build_type, "-VV", vim.fn.expand("%:t:r") },
+    { cwd = config.cwd, stdout = ui.insert },
+    function(result)
+      ui.release()
 
-M.build = M.call(
-  { "cmake", "--build", config.build_dir .. "/" .. config.build_type },
-  { cwd = config.cwd, stdout = ui.insert }
-)
+      if result.code == 0 then
+        print(vim.fn.expand("%:t:r") .. " tests passed")
+        ui.close()
+      else
+        error(vim.fn.expand("%:t:r") .. " failed")
+      end
+    end
+  )
+end
 
-M.build_test = M.call(
-  { "cmake", "--build", config.build_dir .. "/" .. config.build_type .. "/test" },
-  { cwd = config.cwd, stdout = ui.insert }
-)
+local M = {}
+
+function M.set_build_type(opts)
+  if opts.args ~= "" then is_in(opts.args)
+    print("settings build_type to " .. opts.args)
+    config.build_type = opts.args
+  end
+end
+
+function M.generate(opts)
+  if opts.args ~= "" then is_in(opts.args) end
+  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+
+  if opts.args ~= "" then config.build_type = opts.args end
+  vim.cmd("wa")
+
+  ui.get()
+
+  generate()
+end
+
+function M.build(opts)
+  if opts.args ~= "" then is_in(opts.args) end
+  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+
+  if opts.args ~= "" then config.build_type = opts.args end
+
+  ui.get()
+
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) == 1 then
+    vim.cmd("wa") -- save all buffers
+    build()
+  else
+    generate({ fn = build })
+  end
+end
+
+function M.clean()
+  print("test" .. config.cwd)
+
+  vim.system(
+    { "rm", "-rf", config.build_dir, "compile_commands.json" },
+    { cwd = config.cwd }
+  )
+end
+
+function M.test_all(opts)
+  if opts.args~="" then is_in(opts.args) end
+  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+
+  if opts.args ~= "" then config.build_type = opts.args end
+
+  ui.get()
+
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
+    vim.cmd("wa") -- save all buffers
+    build({ fn = test_all })
+  else
+    generate({ fn = build, param = { fn = test_all } })
+  end
+end
+
+function M.test(opts)
+  if opts.args~="" then is_in(opts.args) end
+  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+
+  if opts.args ~= "" then config.build_type = opts.args end
+
+
+  ui.get()
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
+    vim.cmd("wa") -- save all buffers
+    build({ fn = test })
+  else
+    generate({ fn = build, param = { fn = test } })
+  end
+end
+
+function M.dap()
+  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+
+  local function dap()
+    vim.schedule(function()
+      local dap_config = config.dap
+      local name = vim.fn.expand("%:t:r")
+
+      dap_config.args = { name }
+
+      require("dap").run(dap_config)
+    end)
+  end
+
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
+    vim.cmd("wa") -- save all buffers
+    build({ fn = dap })
+  else
+    generate({ fn = build, param = { fn = dap } })
+  end
+end
 
 return M
