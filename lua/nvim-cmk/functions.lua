@@ -106,7 +106,7 @@ end
 local M = {}
 
 function M.set_build_type(opts)
-  if opts.args ~= "" then
+  if opts and opts.args ~= "" then
     for _, type in ipairs(config.BUILD_TYPES) do
       if opts.args == type then
         print("settings build_type to " .. opts.args)

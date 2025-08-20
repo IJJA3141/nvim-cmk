@@ -66,6 +66,11 @@ function cmk.setup(opts)
 
     vim.api.nvim_create_user_command("CMakeClean", cmk.clean, { desc = "Clean" })
   end
+
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    pattern = "CMakeLists.txt",
+    callback = function() cmk.generate() end,
+  })
 end
 
 return cmk
