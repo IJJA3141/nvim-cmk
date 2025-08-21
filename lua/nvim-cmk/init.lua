@@ -9,7 +9,7 @@ function cmk.setup(opts)
   local functions = require 'nvim-cmk.functions'
 
   cmk.show = ui.show
-  cmk.hide = ui.close
+  cmk.hide = ui.hide
   cmk.toggle = ui.toggle
 
   cmk.set_build_type = functions.set_build_type

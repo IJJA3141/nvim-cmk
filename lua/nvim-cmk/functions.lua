@@ -15,12 +15,11 @@ local function generate(callback)
           callback.fn(callback.param)
         else
           print("build files succesfully generated")
-          ui.release()
-          ui.close()
+          ui.hide()
         end
       else
         ui.insert(result.stderr, result.stdout)
-        ui.release()
+        ui.running = false
       end
     end
   )
@@ -36,12 +35,11 @@ local function build(callback)
           callback.fn(callback.param)
         else
           print("succesfully builed")
-          ui.release()
-          ui.close()
+          ui.hide()
         end
       else
         ui.insert(result.stderr, result.stdout)
-        ui.release()
+        ui.running = false
       end
     end
   )
@@ -60,12 +58,11 @@ local function test_all(callback)
           callback.fn(callback.param)
         else
           print("succesfully builed")
-          ui.release()
-          ui.close()
+          ui.hide()
         end
       else
         ui.insert(result.stderr, result.stdout)
-        ui.release()
+        ui.running = false
       end
     end
   )
@@ -85,12 +82,11 @@ local function test(callback)
           callback.fn(callback.param)
         else
           print("succesfully builed")
-          ui.release()
-          ui.close()
+          ui.hide()
         end
       else
         ui.insert(result.stderr, result.stdout)
-        ui.release()
+        ui.running = false
       end
     end
   )
@@ -121,20 +117,20 @@ function M.set_build_type(opts)
 end
 
 function M.generate(opts)
-  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("a nvim-cmk prosses is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
-  ui.get()
+  ui.start()
   generate()
 end
 
 function M.build(opts)
-  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("a nvim-cmk prosses is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
-  ui.get()
+  ui.start()
   if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) == 1 then
     build()
   else
@@ -150,11 +146,11 @@ function M.clean()
 end
 
 function M.test_all(opts)
-  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("a nvim-cmk prosses is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
-  ui.get()
+  ui.start()
   if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
     build({ fn = test_all })
   else
@@ -163,11 +159,11 @@ function M.test_all(opts)
 end
 
 function M.test(opts)
-  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("a nvim-cmk prosses is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
-  ui.get()
+  ui.start()
   if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
     build({ fn = test })
   else
@@ -176,11 +172,11 @@ function M.test(opts)
 end
 
 function M.dap(opts)
-  if ui.is_busy() then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("a nvim-cmk prosses is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
-  ui.get()
+  ui.start()
   if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
     build({ fn = dap })
   else
