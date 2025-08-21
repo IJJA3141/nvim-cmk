@@ -20,19 +20,19 @@ function M.show()
     win = vim.api.nvim_open_win(buf, false, config.win_config)
     vim.api.nvim_set_current_win(win)
 
-    vim.api.nvim_create_autocmd("WinLeave", { 
-   callback =  M.hide     , buffer = buf }) -- auto close win on leave
+    vim.api.nvim_create_autocmd("WinLeave", {
+      callback = M.hide, buffer = buf }) -- auto close win on leave
   end
 end
 
 function M.hide()
-    vim.schedule(function() 
-  if win ~= 0 and vim.api.nvim_win_is_valid(win) then
-    vim.api.nvim_win_close(win, true) -- close window
-    win = 0                                                         -- reset window
-    M.running = false                                               -- release
-  end
-    end)
+  vim.schedule(function()
+    if win ~= 0 and vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true) -- close window
+      win = 0                           -- reset window
+      M.running = false                 -- release
+    end
+  end)
 end
 
 function M.toggle() if win == 0 or not vim.api.nvim_win_is_valid(win) then M.show() else M.hide() end end
@@ -66,7 +66,7 @@ function M.insert(stderr, stdout)
   vim.schedule(function()
     vim.api.nvim_buf_set_lines(
       buf,
-      height == 0 and -2 or -1,
+      -1,
       -1,
       false,
       err_lines
@@ -81,7 +81,7 @@ function M.insert(stderr, stdout)
 
     vim.api.nvim_buf_set_lines(
       buf,
-      height == 0 and -2 or -1,
+      -1,
       -1,
       false,
       lines

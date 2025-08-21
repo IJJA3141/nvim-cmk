@@ -1,21 +1,23 @@
+---@module 'dap'
 ---@class cmk.config
----@field root_marker string[]
----@field register_autocmd  boolean
----@field build_dir string
----@field build_type string
----@field win_config vim.api.keyset.win_config
----@field win_max_height integer
----@field cwd string
-
+---@field cwd string                            # Project root directory
+---@field build_dir string                      # Name of the build directory (e.g. "bin/")
+---@field build_type string                     # Currently selected build type (e.g. "Debug")
+---@field BUILD_TYPES string[]                  # List of valid build types
+---@field dap dap.Configuration                 # Debug Adapter Protocol config (from nvim-dap)
+---@field root_marker string[]                  # Files or dirs used to detect project root
+---@field register_autocmd boolean              # Whether to register autocmds automatically
+---@field win_config vim.api.keyset.win_config  # Floating window configuration for UI
+---@field win_max_height integer                # Maximum window height for UI
+---@field auto_generate boolean                 # Whether to generate project files automatically
 
 ---@class cmk.opts
----@field root_marker string[]?
----@field register_autocmd  boolean?
----@field build_dir string?
----@field build_type string?
----@field win_config vim.api.keyset.win_config?
----@field win_max_height integer?
-
+---@field root_marker? string[]                 # Override project root markers
+---@field register_autocmd? boolean             # Override autocmd registration
+---@field build_dir? string                     # Override build directory
+---@field build_type? string                    # Override build type
+---@field win_config? vim.api.keyset.win_config # Override floating window config
+---@field win_max_height? integer               # Override maximum window height
 
 ---@type vim.api.keyset.win_config
 local default_window_config = {
@@ -43,6 +45,7 @@ local default_dap_config = {
 local default_config = {
   root_marker = { ".git", ".clang-format" },
   register_autocmd = true,
+  auto_generate = true,
   build_dir = "bin/",
   build_type = "Debug",
   win_config = default_window_config,

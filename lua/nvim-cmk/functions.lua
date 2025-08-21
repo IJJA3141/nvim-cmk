@@ -1,6 +1,11 @@
 local config = require 'nvim-cmk.config'
 local ui = require 'nvim-cmk.ui'
 
+---@class callback
+---@field fn fun(callback:callback?)
+---@field param callback
+
+---@param callback callback?
 local function generate(callback)
   vim.system(
     { "cmake",
@@ -14,7 +19,7 @@ local function generate(callback)
         if callback then
           callback.fn(callback.param)
         else
-          print("build files succesfully generated")
+          print("Build files generated successfully")
           ui.hide()
         end
       else
@@ -25,6 +30,7 @@ local function generate(callback)
   )
 end
 
+---@param callback callback?
 local function build(callback)
   vim.system(
     { "cmake", "--build", config.build_dir .. "/" .. config.build_type },
@@ -34,7 +40,7 @@ local function build(callback)
         if callback then
           callback.fn(callback.param)
         else
-          print("succesfully builed")
+          print("Project built successfully")
           ui.hide()
         end
       else
@@ -45,6 +51,7 @@ local function build(callback)
   )
 end
 
+---@param callback callback?
 local function test_all(callback)
   vim.system(
     {
@@ -57,7 +64,7 @@ local function test_all(callback)
         if callback then
           callback.fn(callback.param)
         else
-          print("succesfully builed")
+          print("All tests passed successfully")
           ui.hide()
         end
       else
@@ -68,28 +75,31 @@ local function test_all(callback)
   )
 end
 
+---@param callback callback?
 local function test(callback)
-  vim.system(
-    {
-      "ctest", "-VV",
-      "--test-dir", config.build_dir .. "/" .. config.build_type,
-      vim.fn.expand("%:t:r")
-    },
-    { cwd = config.cwd, stdout = ui.insert },
-    function(result)
-      if result.code == 0 then
-        if callback then
-          callback.fn(callback.param)
+  vim.schedule(function()
+    vim.system(
+      {
+        "ctest", "-VV",
+        "--test-dir", config.build_dir .. "/" .. config.build_type,
+        vim.fn.expand("%:t:r")
+      },
+      { cwd = config.cwd, stdout = ui.insert },
+      function(result)
+        if result.code == 0 then
+          if callback then
+            callback.fn(callback.param)
+          else
+            print("succesfully builed")
+            ui.hide()
+          end
         else
-          print("succesfully builed")
-          ui.hide()
+          ui.insert(result.stderr, result.stdout)
+          ui.running = false
         end
-      else
-        ui.insert(result.stderr, result.stdout)
-        ui.running = false
       end
-    end
-  )
+    )
+  end)
 end
 
 local function dap()
@@ -105,7 +115,7 @@ function M.set_build_type(opts)
   if opts and opts.args ~= "" then
     for _, type in ipairs(config.BUILD_TYPES) do
       if opts.args == type then
-        print("settings build_type to " .. opts.args)
+        print("Build type set to " .. opts.args)
         config.build_type = opts.args
 
         return
@@ -117,7 +127,7 @@ function M.set_build_type(opts)
 end
 
 function M.generate(opts)
-  if ui.running then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("A nvim-cmk process is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
@@ -126,7 +136,7 @@ function M.generate(opts)
 end
 
 function M.build(opts)
-  if ui.running then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("A nvim-cmk process is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
@@ -145,8 +155,26 @@ function M.clean()
   )
 end
 
+function M.cat()
+  if ui.running then error("A nvim-cmk process is already running") end
+  ui.start()
+
+  vim.system(
+    { "cat", config.build_dir .. "/" .. config.build_type .. "/Testing/Temporary/LastTest.log" },
+    { cwd = config.cwd, stdout = ui.insert },
+    function(result)
+      if result.code == 0 then
+        ui.running = false
+      else
+        ui.insert(result.stderr, result.stdout)
+        ui.running = false
+      end
+    end
+  )
+end
+
 function M.test_all(opts)
-  if ui.running then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("A nvim-cmk process is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
@@ -159,7 +187,7 @@ function M.test_all(opts)
 end
 
 function M.test(opts)
-  if ui.running then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("A nvim-cmk process is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
@@ -172,7 +200,7 @@ function M.test(opts)
 end
 
 function M.dap(opts)
-  if ui.running then error("a nvim-cmk prosses is already running") end
+  if ui.running then error("A nvim-cmk process is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
