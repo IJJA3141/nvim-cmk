@@ -1,5 +1,6 @@
 local config = require 'nvim-cmk.config'
 local ui = require 'nvim-cmk.ui'
+local name = nil
 
 ---@class callback
 ---@field fn fun(callback:callback?)
@@ -102,10 +103,62 @@ local function test(callback)
   end)
 end
 
-local function dap()
+local function debug_test()
+  ui.hide() -- important for timing
+
   vim.schedule(function()
-    config.dap.args = { vim.fn.expand("%:t:r") }
-    require("dap").run(config.dap)
+    local conf = {
+      name = "test",
+      type = "codelldb",
+      request = "launch",
+      program = function()
+        return
+            config.cwd .. "/" ..
+            config.build_dir .. "/" ..
+            config.build_type ..
+            "/test/unit_tests"
+      end,
+      args = { vim.fn.expand("%:t:r") },
+      cwd = '${workspaceFolder}',
+      stopOnEntry = false,
+    }
+
+    require("dap").run(conf, {})
+  end)
+end
+
+local function debug_main()
+  ui.hide() -- important for timing
+
+  vim.schedule(function()
+    if not name then
+      name = vim.fn.fnamemodify(
+        vim.fn.input(
+          "Executable name: ",
+          config.cwd .. "/" ..
+          config.build_dir .. "/" ..
+          config.build_type .. "/src/",
+          "file"
+        ), ":t"
+      )
+    end
+
+    local conf = {
+      name = "test",
+      type = "codelldb",
+      request = "launch",
+      program = function()
+        return
+            config.cwd .. "/" ..
+            config.build_dir .. "/" ..
+            config.build_type .. "/src/" .. name
+      end,
+      args = { vim.fn.expand("%:t:r") },
+      cwd = '${workspaceFolder}',
+      stopOnEntry = false,
+    }
+
+    require("dap").run(conf, {})
   end)
 end
 
@@ -179,7 +232,7 @@ function M.test_all(opts)
   vim.cmd("wa")
 
   ui.start()
-  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) == 1 then
     build({ fn = test_all })
   else
     generate({ fn = build, param = { fn = test_all } })
@@ -192,23 +245,40 @@ function M.test(opts)
   vim.cmd("wa")
 
   ui.start()
-  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) == 1 then
     build({ fn = test })
   else
     generate({ fn = build, param = { fn = test } })
   end
 end
 
-function M.dap(opts)
+function M.debug_test(opts)
+  if require('dap').session() ~= nil then return end
+
   if ui.running then error("A nvim-cmk process is already running") end
   M.set_build_type(opts)
   vim.cmd("wa")
 
   ui.start()
-  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) then
-    build({ fn = dap })
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) == 1 then
+    build({ fn = debug_test })
   else
-    generate({ fn = build, param = { fn = dap } })
+    generate({ fn = build, param = { fn = debug_test } })
+  end
+end
+
+function M.debug_main(opts)
+  if require('dap').session() ~= nil then return end
+
+  if ui.running then error("A nvim-cmk process is already running") end
+  M.set_build_type(opts)
+  vim.cmd("wa")
+
+  ui.start()
+  if vim.fn.isdirectory(config.cwd .. "/" .. config.build_dir .. "/" .. config.build_type) == 1 then
+    build({ fn = debug_main })
+  else
+    generate({ fn = build, param = { fn = debug_main } })
   end
 end
 

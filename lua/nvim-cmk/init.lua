@@ -8,68 +8,62 @@ function cmk.setup(opts)
   local ui = require 'nvim-cmk.ui'
   local functions = require 'nvim-cmk.functions'
 
+  -- ui
   cmk.show = ui.show
   cmk.hide = ui.hide
   cmk.toggle = ui.toggle
 
+  -- config
   cmk.set_build_type = functions.set_build_type
+
+  -- comp
   cmk.generate = functions.generate
   cmk.build = functions.build
+  cmk.clean = functions.clean
+
+  -- test
   cmk.test_all = functions.test_all
   cmk.test = functions.test
-  cmk.dap = functions.dap
-
   cmk.cat = functions.cat
-  cmk.clean = functions.clean
+
+  -- debug
+  cmk.debug_main = functions.debug_main
+  cmk.debug_test = functions.debug_test
 
   local completion = function(_, _, _) return config.BUILD_TYPES end
 
   if config.register_autocmd then
-    vim.api.nvim_create_user_command("CMakeShow", cmk.show, { desc = "Show CMake output" })
-    vim.api.nvim_create_user_command("CMakeHide", cmk.hide, { desc = "Hide CMake output" })
-    vim.api.nvim_create_user_command("CMakeToggle", cmk.toggle, { desc = "Toggle CMake output" })
+    local autocmds = {
+      { "CMakeShow",   cmk.show,   { desc = "Show CMake output" } },
+      { "CMakeHid",    cmk.hide,   { desc = "Hide CMake output" } },
+      { "CMakeToggle", cmk.toggle, { desc = "Toggle CMake output" } },
+      { "CMakeCat",    cmk.cat,    { desc = "Display the most recent test log" } },
+      { "CMakeClean",  cmk.clean,  { desc = "Remove build artifacts and tmp files" } },
+    }
 
-    vim.api.nvim_create_user_command("CMakeSetBuildType", cmk.set_build_type, {
-      desc = "Set current CMake build type",
-      nargs = 1,
-      complete = completion
-    })
+    for _, autocmd in pairs(autocmds) do
+      vim.api.nvim_create_user_command(autocmd[1], autocmd[2], autocmd[3])
+    end
 
-    vim.api.nvim_create_user_command("CMakeGenerate", cmk.generate, {
-      desc = "Generate build files for current configuration",
-      nargs = "?",
-      complete = completion
-    })
+    autocmds = {
+      { "CMakeSetBuildType", cmk.set_build_type, { desc = "Set current CMake build type" } },
 
-    vim.api.nvim_create_user_command("CMakeBuild", cmk.build, {
-      desc = "Build project using current configuration",
-      nargs = "?",
-      complete = completion
-    })
+      { "CMakeGenerate",     cmk.generate,       { desc = "Generate build files for current configuration" } },
+      { "CMakeBuild",        cmk.build,          { desc = "Build project using current configuration" } },
 
-    vim.api.nvim_create_user_command("CMakeTestAll", cmk.test_all, {
-      desc = "Run all tests in the project",
-      nargs = "?",
-      complete = completion
-    })
+      { "CMakeTestAll",      cmk.test_all,       { desc = "Run all tests in the project" } },
+      { "CMakeTest",         cmk.test,           { desc = "Run the test in current file" } },
 
-    vim.api.nvim_create_user_command("CMakeTest", cmk.test, {
-      desc = "Run the test in current file",
-      nargs = "?",
-      complete = completion
-    })
+      { "CMakeDebug",        cmk.debug_main,     { desc = "Start a dap session" } },
+      { "CMakeDebugTest",    cmk.debug_test,     { desc = "Start a dap session for current test file" } },
+    }
 
-    vim.api.nvim_create_user_command("CMakeDap", cmk.dap, {
-      desc = "Launch test of current file in debugger for current configuration",
-      nargs = "?",
-      complete = completion
-    })
+    for _, autocmd in pairs(autocmds) do
+      autocmd[3]["nargs"] = "?"
+      autocmd[3]["complete"] = completion
 
-    vim.api.nvim_create_user_command("CMakeCat", cmk.cat, {
-      desc = "Display the most recent test log" })
-
-    vim.api.nvim_create_user_command("CMakeClean", cmk.clean, {
-      desc = "Remove build artifacts and tmp files" })
+      vim.api.nvim_create_user_command(autocmd[1], autocmd[2], autocmd[3])
+    end
   end
 
   if config.auto_generate then

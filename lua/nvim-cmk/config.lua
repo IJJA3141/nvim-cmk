@@ -34,7 +34,7 @@ local default_window_config = {
 
 local default_dap_config = {
   name = "nvim-cmk",
-  type = "cppdbg",
+  type = "codelldb",
   request = "launch",
   program = "",
   cwd = "",
