@@ -64,13 +64,7 @@ function M.insert(stderr, stdout)
   end
 
   vim.schedule(function()
-    vim.api.nvim_buf_set_lines(
-      buf,
-      -1,
-      -1,
-      false,
-      err_lines
-    )
+    vim.api.nvim_buf_set_lines(buf, height, height, false, err_lines)
 
     vim.api.nvim_buf_set_extmark(buf, ns, height, 0, {
       end_row = height + #err_lines,
@@ -79,13 +73,7 @@ function M.insert(stderr, stdout)
 
     height = height + #err_lines
 
-    vim.api.nvim_buf_set_lines(
-      buf,
-      -1,
-      -1,
-      false,
-      lines
-    )
+    config.insert(buf, height, height, false, lines)
 
     height = height + #lines
 

@@ -1,5 +1,34 @@
 local cmk = {}
 
+---@section cmk.autocmd
+---@brief [[
+--- General commands
+--- ```lua
+--- require'cmk'.show       -- Show the CMake output window.
+--- require'cmk'.hide       -- Hide the CMake output window.
+--- require'cmk'.toggle     -- Toggle the visibility of the CMake output window.
+--- require'cmk'.cat        -- Display the most recent test log.
+--- require'cmk'.clean      -- Remove all build artifacts and temporary files.
+---
+--- -- Build commands
+--- require'cmk'.set_build_type -- Set the current CMake build type.
+--- require'cmk'.generate       -- Generate CMake build files for the current configuration.
+--- require'cmk'.build          -- Build the project using the current configuration.
+---
+--- -- Test commands
+--- require'cmk'.test_all -- Run all tests in the project.
+--- require'cmk'.test     -- Run the test corresponding to the current buffer.
+---
+--- -- Debugging commands
+--- require'cmk'.debug_main -- Launch a DAP debugging session for the main executable.
+--- require'cmk'.debug_test -- Launch a DAP debugging session for the test in the current buffer.
+--- ```
+---
+--- functions: set_build_type, generate, build, test_all, test, debug_main and debug_test take
+--- as argument a `vim.api.keyset.parse_cmd` with args beeing the build_type
+---@brief ]]
+
+
 ---@param opts cmk.opts?
 function cmk.setup(opts)
   local config = require 'nvim-cmk.config'

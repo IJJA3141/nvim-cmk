@@ -1,12 +1,20 @@
+---@type cmk.config
 local config = require 'nvim-cmk.config'
 local ui = require 'nvim-cmk.ui'
 local name = nil
 
----@class callback
----@field fn fun(callback:callback?)
----@field param callback
+---@class cmk.callback
+---
+---@field args any
+---Optional arguments passed to the current function.
+---
+---@field fn fun(cb:cmk.callback|nil)
+---The next function to be executed once the current step completes.
+---
+---@field next cmk.callback|nil
+---The callback data that will be passed to `fn` when it is invoked.
 
----@param callback callback?
+---@param callback cmk.callback|nil
 local function generate(callback)
   vim.system(
     { "cmake",
@@ -18,7 +26,7 @@ local function generate(callback)
     function(result)
       if result.code == 0 then
         if callback then
-          callback.fn(callback.param)
+          callback.fn(callback.next)
         else
           print("Build files generated successfully")
           ui.hide()
@@ -31,7 +39,7 @@ local function generate(callback)
   )
 end
 
----@param callback callback?
+---@param callback cmk.callback|nil
 local function build(callback)
   vim.system(
     { "cmake", "--build", config.build_dir .. "/" .. config.build_type },
@@ -39,7 +47,7 @@ local function build(callback)
     function(result)
       if result.code == 0 then
         if callback then
-          callback.fn(callback.param)
+          callback.fn(callback.next)
         else
           print("Project built successfully")
           ui.hide()
@@ -52,7 +60,7 @@ local function build(callback)
   )
 end
 
----@param callback callback?
+---@param callback cmk.callback|nil
 local function test_all(callback)
   vim.system(
     {
@@ -63,7 +71,7 @@ local function test_all(callback)
     function(result)
       if result.code == 0 then
         if callback then
-          callback.fn(callback.param)
+          callback.fn(callback.next)
         else
           print("All tests passed successfully")
           ui.hide()
@@ -76,20 +84,20 @@ local function test_all(callback)
   )
 end
 
----@param callback callback?
+---@param callback cmk.callback|nil
 local function test(callback)
   vim.schedule(function()
     vim.system(
       {
         "ctest", "-VV",
         "--test-dir", config.build_dir .. "/" .. config.build_type,
-        vim.fn.expand("%:t:r")
+        "-R", vim.fn.expand("#:.:r"):sub(6)
       },
       { cwd = config.cwd, stdout = ui.insert },
       function(result)
         if result.code == 0 then
           if callback then
-            callback.fn(callback.param)
+            callback.fn(callback.next)
           else
             print("succesfully builed")
             ui.hide()
@@ -164,6 +172,7 @@ end
 
 local M = {}
 
+---@param opts vim.api.keyset.parse_cmd
 function M.set_build_type(opts)
   if opts and opts.args ~= "" then
     for _, type in ipairs(config.BUILD_TYPES) do
